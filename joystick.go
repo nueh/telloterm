@@ -38,6 +38,7 @@ var (
 	err      error
 )
 
+// Sticks
 const (
 	axLeftX = iota
 	axLeftY
@@ -49,6 +50,7 @@ const (
 	axR2
 )
 
+// Buttons
 const (
 	btnX = iota
 	btnCircle
@@ -60,14 +62,24 @@ const (
 	btnR1
 	btnR2
 	btnR3
+	btnDL
+	btnDR
+	btnDU
+	btnDD
 	btnUnknown
+)
+
+// Features
+const (
+	flips_enabled = iota
 )
 
 const deadZone = 2000
 
 type joystickConfig struct {
-	axes    []int
-	buttons []uint
+	axes     []int
+	buttons  []uint
+	features []bool
 }
 
 var dualShock4Config = joystickConfig{
@@ -78,6 +90,23 @@ var dualShock4Config = joystickConfig{
 		btnX: 0, btnCircle: 1, btnTriangle: 2, btnSquare: 3, btnL1: 4,
 		btnL2: 6, btnR1: 5, btnR2: 7,
 	},
+	features: []bool{
+		flips_enabled: false,
+	},
+}
+
+var eightBitDoSF30Pro = joystickConfig{
+	axes: []int{
+		axLeftX: 0, axLeftY: 1, axRightX: 2, axRightY: 3,
+	},
+	// B, A, Y, X, L1, L2, R1, R2
+	buttons: []uint{
+		btnX: 0, btnCircle: 1, btnTriangle: 3, btnSquare: 2, btnL1: 4,
+		btnL2: 6, btnR1: 5, btnR2: 7, btnDL: 13, btnDR: 14, btnDU: 15, btnDD: 16,
+	},
+	features: []bool{
+		flips_enabled: true,
+	},
 }
 
 var dualShock4ConfigWin = joystickConfig{
@@ -87,6 +116,9 @@ var dualShock4ConfigWin = joystickConfig{
 	buttons: []uint{
 		btnX: 1, btnCircle: 2, btnTriangle: 3, btnSquare: 0, btnL1: 4,
 		btnL2: 6, btnR1: 5, btnR2: 7,
+	},
+	features: []bool{
+		flips_enabled: false,
 	},
 }
 
@@ -99,6 +131,9 @@ var tflightHotasXConfig = joystickConfig{
 		btnR1: 0, btnL1: 1, btnR3: 2, btnL3: 3, btnSquare: 4, btnX: 5,
 		btnCircle: 6, btnTriangle: 7, btnR2: 8, btnL2: 9,
 	},
+	features: []bool{
+		flips_enabled: false,
+	},
 }
 
 func printJoystickHelp() {
@@ -109,7 +144,7 @@ Right Stick  Forward/Backward/Left/Right
 Left Stick   Up/Down/Turn
 Triangle     Takeoff
 X            Land
-Circle       
+Circle       Throw Takeoff
 Square       Take Photo
 L1           Bounce (on/off)
 L2           Palm Land
@@ -148,9 +183,12 @@ func setupJoystick(id int) bool {
 		}
 	case "HotasX":
 		jsConfig = tflightHotasXConfig
+	case "EightBitDoSF30Pro":
+		jsConfig = eightBitDoSF30Pro
 	default:
 		log.Fatalf("Unknown joystick type <%s> supplied\n", *jsTypeFlag)
 	}
+	// log.Printf("Set up looks good: \n")
 	return true
 }
 
@@ -254,6 +292,8 @@ func readJoystick(test bool) {
 		if jsState.Buttons&(1<<jsConfig.buttons[btnCircle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnCircle]) == 0 {
 			if test {
 				log.Println("Circle pressed")
+			} else {
+				drone.ThrowTakeOff()
 			}
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnX]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnX]) == 0 {
@@ -261,6 +301,37 @@ func readJoystick(test bool) {
 				log.Println("X pressed")
 			} else {
 				drone.Land()
+			}
+		}
+		// Flip Feature
+		if jsConfig.features[flips_enabled] {
+			if jsState.Buttons&(1<<jsConfig.buttons[btnDL]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDL]) == 0 {
+				if test {
+					log.Println("D-Pad Left pressed")
+				} else {
+					drone.LeftFlip()
+				}
+			}
+			if jsState.Buttons&(1<<jsConfig.buttons[btnDR]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDR]) == 0 {
+				if test {
+					log.Println("D-Pad Right pressed")
+				} else {
+					drone.RightFlip()
+				}
+			}
+			if jsState.Buttons&(1<<jsConfig.buttons[btnDU]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDU]) == 0 {
+				if test {
+					log.Println("D-Pad Up pressed")
+				} else {
+					drone.ForwardFlip()
+				}
+			}
+			if jsState.Buttons&(1<<jsConfig.buttons[btnDD]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDD]) == 0 {
+				if test {
+					log.Println("D-Pad Down pressed")
+				} else {
+					drone.BackFlip()
+				}
 			}
 		}
 		prevState = jsState
