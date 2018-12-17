@@ -189,7 +189,7 @@ var (
 	jsIDFlag    = flag.Int("jsid", 999, "ID number of joystick to use (see -jslist to get IDs)")
 	jsListFlag  = flag.Bool("jslist", false, "List attached joysticks")
 	jsTest      = flag.Bool("jstest", false, "Debug joystick mapping")
-	jsTypeFlag  = flag.String("jstype", "", "Type of joystick, options are DualShock4, HotasX")
+	jsTypeFlag  = flag.String("jstype", "", "Type of joystick, options are DualShock4, HotasX, EightBitDoSF30Pro")
 	keyHelpFlag = flag.Bool("keyhelp", false, "Print help for keyboard control mapping and exit")
 	x11Flag     = flag.Bool("x11", false, "Use '-vo x11' flag in case mplayer takes over entire window")
 )
