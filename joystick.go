@@ -251,7 +251,7 @@ func readJoystick(test bool) {
 		}
 
 		if test {
-			log.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
+			fmt.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
 		} else {
 			stickChan <- sm
 
@@ -259,7 +259,7 @@ func readJoystick(test bool) {
 
 		if jsState.Buttons&(1<<jsConfig.buttons[btnL1]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL1]) == 0 {
 			if test {
-				log.Println("L1 pressed")
+				fmt.Println("L1 pressed")
 			} else {
 				drone.Bounce()
 			}
@@ -267,7 +267,7 @@ func readJoystick(test bool) {
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnL2]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL2]) == 0 {
 			if test {
-				log.Println("L2 pressed")
+				fmt.Println("L2 pressed")
 			} else {
 				drone.PalmLand()
 			}
@@ -275,7 +275,7 @@ func readJoystick(test bool) {
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnSquare]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnSquare]) == 0 {
 			if test {
-				log.Println("Square pressed")
+				fmt.Println("Square pressed")
 			} else {
 				drone.TakePicture()
 			}
@@ -283,7 +283,7 @@ func readJoystick(test bool) {
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnTriangle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnTriangle]) == 0 {
 			if test {
-				log.Println("Triangle pressed")
+				fmt.Println("Triangle pressed")
 			} else {
 				drone.TakeOff()
 			}
@@ -291,14 +291,14 @@ func readJoystick(test bool) {
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnCircle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnCircle]) == 0 {
 			if test {
-				log.Println("Circle pressed")
+				fmt.Println("Circle pressed")
 			} else {
 				drone.ThrowTakeOff()
 			}
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnX]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnX]) == 0 {
 			if test {
-				log.Println("X pressed")
+				fmt.Println("X pressed")
 			} else {
 				drone.Land()
 			}
@@ -307,28 +307,28 @@ func readJoystick(test bool) {
 		if jsConfig.features[flips_enabled] {
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDL]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDL]) == 0 {
 				if test {
-					log.Println("D-Pad Left pressed")
+					fmt.Println("D-Pad Left pressed")
 				} else {
 					drone.LeftFlip()
 				}
 			}
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDR]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDR]) == 0 {
 				if test {
-					log.Println("D-Pad Right pressed")
+					fmt.Println("D-Pad Right pressed")
 				} else {
 					drone.RightFlip()
 				}
 			}
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDU]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDU]) == 0 {
 				if test {
-					log.Println("D-Pad Up pressed")
+					fmt.Println("D-Pad Up pressed")
 				} else {
 					drone.ForwardFlip()
 				}
 			}
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDD]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDD]) == 0 {
 				if test {
-					log.Println("D-Pad Down pressed")
+					fmt.Println("D-Pad Down pressed")
 				} else {
 					drone.BackFlip()
 				}

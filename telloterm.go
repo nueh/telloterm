@@ -203,9 +203,13 @@ func main() {
 		if err != nil {
 			log.Fatal("could not create log file: ", err)
 		}
+
+		writer := bufio.NewWriter(logFile)
+		defer writer.Flush()
+
 		defer logFile.Close()
 
-		log.SetOutput(bufio.NewWriter(logFile))
+		log.SetOutput(writer)
 	}
 	if *keyHelpFlag {
 		printKeyHelp()
