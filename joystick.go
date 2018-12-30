@@ -71,7 +71,7 @@ const (
 
 // Features
 const (
-	flips_enabled = iota
+	flipsEnabled = iota
 )
 
 const deadZone = 2000
@@ -91,7 +91,7 @@ var dualShock4Config = joystickConfig{
 		btnL2: 6, btnR1: 5, btnR2: 7,
 	},
 	features: []bool{
-		flips_enabled: false,
+		flipsEnabled: false,
 	},
 }
 
@@ -105,7 +105,7 @@ var eightBitDoSF30Pro = joystickConfig{
 		btnL2: 6, btnR1: 5, btnR2: 7, btnDL: 13, btnDR: 14, btnDU: 15, btnDD: 16,
 	},
 	features: []bool{
-		flips_enabled: true,
+		flipsEnabled: true,
 	},
 }
 
@@ -118,7 +118,7 @@ var dualShock4ConfigWin = joystickConfig{
 		btnL2: 6, btnR1: 5, btnR2: 7,
 	},
 	features: []bool{
-		flips_enabled: false,
+		flipsEnabled: false,
 	},
 }
 
@@ -132,7 +132,7 @@ var tflightHotasXConfig = joystickConfig{
 		btnCircle: 6, btnTriangle: 7, btnR2: 8, btnL2: 9,
 	},
 	features: []bool{
-		flips_enabled: false,
+		flipsEnabled: false,
 	},
 }
 
@@ -304,7 +304,7 @@ func readJoystick(test bool) {
 			}
 		}
 		// Flip Feature
-		if jsConfig.features[flips_enabled] {
+		if jsConfig.features[flipsEnabled] {
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDL]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDL]) == 0 {
 				if test {
 					fmt.Println("D-Pad Left pressed")
