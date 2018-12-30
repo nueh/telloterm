@@ -23,6 +23,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -37,7 +38,7 @@ import (
 
 	"github.com/SMerrony/tello"
 	runewidth "github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
+	termbox "github.com/nsf/termbox-go"
 )
 
 const (
@@ -184,6 +185,7 @@ var (
 // program flags
 var (
 	cpuprofile  = flag.String("cpuprofile", "", "Write cpu profile to `file`")
+	logFileName = flag.String("logfile", "", "File for log output (replace stdout)")
 	fdLogFlag   = flag.String("fdlog", "", "Log some CSV flight data to this file")
 	joyHelpFlag = flag.Bool("joyhelp", false, "Print help for joystick control mapping and exit")
 	jsIDFlag    = flag.Int("jsid", 999, "ID number of joystick to use (see -jslist to get IDs)")
@@ -196,6 +198,15 @@ var (
 
 func main() {
 	flag.Parse()
+	if *logFileName != "" {
+		logFile, err := os.Create(*logFileName)
+		if err != nil {
+			log.Fatal("could not create log file: ", err)
+		}
+		defer logFile.Close()
+
+		log.SetOutput(bufio.NewWriter(logFile))
+	}
 	if *keyHelpFlag {
 		printKeyHelp()
 		os.Exit(0)
