@@ -136,18 +136,49 @@ var tflightHotasXConfig = joystickConfig{
 	},
 }
 
+var tflightSteamControllerConfig = joystickConfig{
+	axes: []int{
+		axLeftX: 0, axLeftY: 1, axRightX: 2, axRightY: 3,
+	},
+	buttons: []uint{
+		btnR1: 7, btnL1: 6, btnR3: 14, btnL3: 13, btnSquare: 4, btnX: 2,
+		btnCircle: 3, btnTriangle: 5, btnR2: 9, btnL2: 8,
+
+		btnDL: 19, btnDR: 20, btnDU: 17, btnDD: 18,
+
+		// DTouch = 0
+		// R3Touch = 1
+		// SELECT = 10
+		// START = 11
+		// HOME = 12
+		// BackL = 15
+		// BackR = 16
+	},
+	features: []bool{
+		flipsEnabled: true,
+	},
+}
+
 func printJoystickHelp() {
 	fmt.Print(
 		`TelloTerm Joystick Control Mapping
 
-Right Stick  Forward/Backward/Left/Right
-Left Stick   Up/Down/Turn
-Triangle     Takeoff
-X            Land
-Circle       Throw Takeoff
-Square       Take Photo
-L1           Bounce (on/off)
-L2           Palm Land
+Left Stick   Forward/Backward/Left/Right
+Right Stick  Up/Down/Turn
+
+△            Takeoff
+╳            Land
+○            Take Photo
+⌑            Throw takeoff / Palm Land
+L1           Slow flight mode
+L2           Bounce (on/off)
+R1           Fast flight mode
+R2           Ultra slow (hold this button for lower sensitivity, does not change flight speed mode)
+
+D-Pad Left    Flip left
+D-Pad Right   Flip right
+D-Pad Up      Flip forward
+D-Pad Down    Flip backward
 `)
 }
 
@@ -185,6 +216,8 @@ func setupJoystick(id int) bool {
 		jsConfig = tflightHotasXConfig
 	case "EightBitDoSF30Pro":
 		jsConfig = eightBitDoSF30Pro
+	case "SteamController":
+		jsConfig = tflightSteamControllerConfig
 	default:
 		log.Fatalf("Unknown joystick type <%s> supplied\n", *jsTypeFlag)
 	}
@@ -214,27 +247,27 @@ func readJoystick(test bool) {
 		}
 
 		if jsState.AxisData[jsConfig.axes[axLeftX]] == 32768 {
-			sm.Lx = 32767
+			sm.Rx = 32767
 		} else {
-			sm.Lx = int16(jsState.AxisData[jsConfig.axes[axLeftX]])
+			sm.Rx = int16(jsState.AxisData[jsConfig.axes[axLeftX]])
 		}
 
 		if jsState.AxisData[jsConfig.axes[axLeftY]] == 32768 {
-			sm.Ly = -32767
+			sm.Ry = -32767
 		} else {
-			sm.Ly = -int16(jsState.AxisData[jsConfig.axes[axLeftY]])
+			sm.Ry = -int16(jsState.AxisData[jsConfig.axes[axLeftY]])
 		}
 
 		if jsState.AxisData[jsConfig.axes[axRightX]] == 32768 {
-			sm.Rx = 32767
+			sm.Lx = 32767
 		} else {
-			sm.Rx = int16(jsState.AxisData[jsConfig.axes[axRightX]])
+			sm.Lx = int16(jsState.AxisData[jsConfig.axes[axRightX]])
 		}
 
 		if jsState.AxisData[jsConfig.axes[axRightY]] == 32768 {
-			sm.Ry = -32767
+			sm.Ly = -32767
 		} else {
-			sm.Ry = -int16(jsState.AxisData[jsConfig.axes[axRightY]])
+			sm.Ly = -int16(jsState.AxisData[jsConfig.axes[axRightY]])
 		}
 
 		if intAbs(sm.Lx) < deadZone {
@@ -250,59 +283,93 @@ func readJoystick(test bool) {
 			sm.Ry = 0
 		}
 
+		if jsState.Buttons&(1<<jsConfig.buttons[btnR2]) != 0 {
+			if test && prevState.Buttons&(1<<jsConfig.buttons[btnR2]) == 0 {
+				log.Println("R2 pressed")
+			}
+
+			sm.Lx /= 3
+			sm.Ly /= 3
+			sm.Rx /= 3
+			sm.Ry /= 3
+		} else if test && prevState.Buttons&(1<<jsConfig.buttons[btnR2]) != 0 {
+			log.Println("R2 released")
+		}
+
 		if test {
-			fmt.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
+			if sm.Lx != 0 || sm.Ly != 0 || sm.Rx != 0 || sm.Ry != 0 {
+				log.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
+			}
 		} else {
 			stickChan <- sm
-
 		}
 
 		if jsState.Buttons&(1<<jsConfig.buttons[btnL1]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL1]) == 0 {
 			if test {
 				fmt.Println("L1 pressed")
 			} else {
-				drone.Bounce()
+				drone.SetSlowMode()
 			}
-
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnL2]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL2]) == 0 {
 			if test {
 				fmt.Println("L2 pressed")
 			} else {
-				drone.PalmLand()
+				drone.Bounce()
 			}
-
 		}
+		if jsState.Buttons&(1<<jsConfig.buttons[btnR1]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnR1]) == 0 {
+			if test {
+				log.Println("R1 pressed")
+			} else {
+				drone.SetFastMode()
+			}
+		}
+
+		if jsState.Buttons&(1<<jsConfig.buttons[btnL3]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL3]) == 0 {
+			if test {
+				log.Println("L3 pressed")
+			}
+		}
+		if jsState.Buttons&(1<<jsConfig.buttons[btnR3]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnR3]) == 0 {
+			if test {
+				log.Println("R3 pressed")
+			}
+		}
+
 		if jsState.Buttons&(1<<jsConfig.buttons[btnSquare]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnSquare]) == 0 {
 			if test {
-				fmt.Println("Square pressed")
+				log.Println("⌑ pressed")
 			} else {
-				drone.TakePicture()
+				if drone.GetFlightData().Flying {
+					drone.PalmLand()
+				} else {
+					drone.ThrowTakeOff()
+				}
 			}
-
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnTriangle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnTriangle]) == 0 {
 			if test {
-				fmt.Println("Triangle pressed")
+				log.Println("△ pressed")
 			} else {
 				drone.TakeOff()
 			}
-
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnCircle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnCircle]) == 0 {
 			if test {
-				fmt.Println("Circle pressed")
+				log.Println("○ pressed")
 			} else {
-				drone.ThrowTakeOff()
+				drone.TakePicture()
 			}
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnX]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnX]) == 0 {
 			if test {
-				fmt.Println("X pressed")
+				log.Println("╳ pressed")
 			} else {
 				drone.Land()
 			}
 		}
+
 		// Flip Feature
 		if jsConfig.features[flipsEnabled] {
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDL]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDL]) == 0 {
@@ -334,8 +401,14 @@ func readJoystick(test bool) {
 				}
 			}
 		}
+
 		prevState = jsState
 
-		time.Sleep(updatePeriodMs)
+		if test {
+			// Avoid spam of stdout output
+			time.Sleep(150 * time.Millisecond)
+		} else {
+			time.Sleep(updatePeriodMs)
+		}
 	}
 }
