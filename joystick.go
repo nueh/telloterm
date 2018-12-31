@@ -285,7 +285,7 @@ func readJoystick(test bool) {
 
 		if jsState.Buttons&(1<<jsConfig.buttons[btnR2]) != 0 {
 			if test && prevState.Buttons&(1<<jsConfig.buttons[btnR2]) == 0 {
-				log.Println("R2 pressed")
+				fmt.Println("R2 pressed")
 			}
 
 			sm.Lx /= 3
@@ -293,12 +293,12 @@ func readJoystick(test bool) {
 			sm.Rx /= 3
 			sm.Ry /= 3
 		} else if test && prevState.Buttons&(1<<jsConfig.buttons[btnR2]) != 0 {
-			log.Println("R2 released")
+			fmt.Println("R2 released")
 		}
 
 		if test {
 			if sm.Lx != 0 || sm.Ly != 0 || sm.Rx != 0 || sm.Ry != 0 {
-				log.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
+				fmt.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
 			}
 		} else {
 			stickChan <- sm
@@ -320,7 +320,7 @@ func readJoystick(test bool) {
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnR1]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnR1]) == 0 {
 			if test {
-				log.Println("R1 pressed")
+				fmt.Println("R1 pressed")
 			} else {
 				drone.SetFastMode()
 			}
@@ -328,18 +328,18 @@ func readJoystick(test bool) {
 
 		if jsState.Buttons&(1<<jsConfig.buttons[btnL3]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL3]) == 0 {
 			if test {
-				log.Println("L3 pressed")
+				fmt.Println("L3 pressed")
 			}
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnR3]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnR3]) == 0 {
 			if test {
-				log.Println("R3 pressed")
+				fmt.Println("R3 pressed")
 			}
 		}
 
 		if jsState.Buttons&(1<<jsConfig.buttons[btnSquare]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnSquare]) == 0 {
 			if test {
-				log.Println("⌑ pressed")
+				fmt.Println("⌑ pressed")
 			} else {
 				if drone.GetFlightData().Flying {
 					drone.PalmLand()
@@ -350,21 +350,21 @@ func readJoystick(test bool) {
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnTriangle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnTriangle]) == 0 {
 			if test {
-				log.Println("△ pressed")
+				fmt.Println("△ pressed")
 			} else {
 				drone.TakeOff()
 			}
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnCircle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnCircle]) == 0 {
 			if test {
-				log.Println("○ pressed")
+				fmt.Println("○ pressed")
 			} else {
 				drone.TakePicture()
 			}
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnX]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnX]) == 0 {
 			if test {
-				log.Println("╳ pressed")
+				fmt.Println("╳ pressed")
 			} else {
 				drone.Land()
 			}
