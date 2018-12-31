@@ -9,7 +9,7 @@ Telloterm currently provides
 * control from the keyboard
 * picture taking
 * optional live video feed via mplayer (must be installed separately)
-* optional control via a Dualshock 4 game controller or Thrustmaster HotasX flight controller
+* optional control via a Dualshock 4 game controller, Thrustmaster HotasX flight controller, EightBitDoSF30Pro Controller or Steam Controller
 
 Only tested on GNU/Linux - it wil probably work OK on Macs, but it will take some effort to get it running on Windows.
 
