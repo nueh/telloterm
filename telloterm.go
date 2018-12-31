@@ -554,7 +554,7 @@ func startPlayer() (io.WriteCloser, error) {
 	if err != nil {
 		return playerIn, err
 	}
-	err := player.Start()
+	err = player.Start()
 	return playerIn, err
 }
 
@@ -572,7 +572,7 @@ func startConverter() (io.WriteCloser, error) {
 	if err != nil {
 		return converterIn, err
 	}
-	err := converter.Start()
+	err = converter.Start()
 	return converterIn, err
 }
 
@@ -585,7 +585,7 @@ func startVideo(play bool, capture bool) {
 	var playerIn io.WriteCloser
 	var converterIn io.WriteCloser
 	if play {
-		playerIn, err := startPlayer()
+		playerIn, err = startPlayer()
 		if err != nil {
 			log.Fatalf("Unable to start mplayer - %v", err)
 			return
@@ -612,7 +612,7 @@ func startVideo(play bool, capture bool) {
 		for {
 			vbuf := <-videochan
 
-			if player {
+			if play {
 				_, err := playerIn.Write(vbuf)
 				if err != nil {
 					log.Fatalf("Error writing to mplayer %v\n", err)

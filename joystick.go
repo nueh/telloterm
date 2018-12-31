@@ -28,7 +28,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/SMerrony/tello"
+	"github.com/Anty0/tello"
 	"github.com/simulatedsimian/joystick"
 )
 
