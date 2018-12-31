@@ -23,7 +23,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -203,13 +202,9 @@ func main() {
 		if err != nil {
 			log.Fatal("could not create log file: ", err)
 		}
-
-		writer := bufio.NewWriter(logFile)
-		defer writer.Flush()
-
 		defer logFile.Close()
 
-		log.SetOutput(writer)
+		log.SetOutput(logFile)
 	}
 	if *keyHelpFlag {
 		printKeyHelp()
