@@ -195,8 +195,11 @@ var (
 	jsTypeFlag  = flag.String("jstype", "", "Type of joystick, options are DualShock4, HotasX, EightBitDoSF30Pro or SteamController")
 	keyHelpFlag = flag.Bool("keyhelp", false, "Print help for keyboard control mapping and exit")
 	x11Flag     = flag.Bool("x11", false, "Use '-vo x11' flag in case mplayer takes over entire window")
-	soundDevice = flag.String("sounddevice", "", "Sound device source (microphone) for video recording, example: hw:1")
+	soundDevice = flag.String("sounddevice", "", "Sound device source (microphone) for video recording (in format for ffmpeg), example: default or hw:1 or default:CARD=U0x46d0x809")
 )
+
+var player *exec.Cmd
+var converter *exec.Cmd
 
 func main() {
 	flag.Parse()
@@ -394,6 +397,13 @@ mainloop:
 	if drone.NumPics() > 0 {
 		drone.SaveAllPics(fmt.Sprintf("tello_pic_%s", time.Now().Format(time.RFC3339)))
 	}
+
+	if player != nil {
+		player.Process.Signal(os.Interrupt)
+	}
+	if converter != nil {
+		converter.Process.Signal(os.Interrupt)
+	}
 }
 
 func printKeyHelp() {
@@ -540,10 +550,13 @@ func updateFields(newFd tello.FlightData) {
 }
 
 func startPlayer() (io.WriteCloser, error) {
+	if player != nil {
+		player.Process.Signal(os.Interrupt)
+	}
+
 	// start external mplayer instance...
 	// the -vo X11 parm allows it to run nicely inside a virtual machine
 	// setting the FPS to 60 seems to produce smoother video
-	var player *exec.Cmd
 	if *x11Flag {
 		player = exec.Command("mplayer", "-nosound", "-vo", "x11", "-fps", "60", "-")
 	} else {
@@ -559,11 +572,14 @@ func startPlayer() (io.WriteCloser, error) {
 }
 
 func startConverter() (io.WriteCloser, error) {
+	if converter != nil {
+		converter.Process.Signal(os.Interrupt)
+	}
+
 	// start ffmpeg converter and save output to current directory
-	var converter *exec.Cmd
 	videoFilename := fmt.Sprintf("./tello_vid_%s.mp4", time.Now().Format(time.RFC3339))
 	if *soundDevice != "" {
-		converter = exec.Command("ffmpeg", "-f", "alsa", "-i", *soundDevice, "-i", "-", "-r", "60", videoFilename)
+		converter = exec.Command("ffmpeg", "-f", "pulse", "-i", *soundDevice, "-i", "-", "-r", "60", videoFilename)
 	} else {
 		converter = exec.Command("ffmpeg", "-i", "-", "-r", "60", videoFilename)
 	}
