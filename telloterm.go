@@ -26,6 +26,8 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"math"
 	"os"
@@ -35,7 +37,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SMerrony/tello"
+	"github.com/Anty0/tello"
 	runewidth "github.com/mattn/go-runewidth"
 	termbox "github.com/nsf/termbox-go"
 )
@@ -193,6 +195,7 @@ var (
 	jsTypeFlag  = flag.String("jstype", "", "Type of joystick, options are DualShock4, HotasX, EightBitDoSF30Pro or SteamController")
 	keyHelpFlag = flag.Bool("keyhelp", false, "Print help for keyboard control mapping and exit")
 	x11Flag     = flag.Bool("x11", false, "Use '-vo x11' flag in case mplayer takes over entire window")
+	soundDevice = flag.String("sounddevice", "", "Sound device source (microphone) for video recording, example: hw:1")
 )
 
 func main() {
@@ -205,6 +208,8 @@ func main() {
 		defer logFile.Close()
 
 		log.SetOutput(logFile)
+	} else {
+		log.SetOutput(ioutil.Discard)
 	}
 	if *keyHelpFlag {
 		printKeyHelp()
@@ -354,11 +359,11 @@ mainloop:
 				case 'f':
 					drone.TakePicture()
 				case 'v':
-					startVideoWindow()
+					startVideo(true, false)
 				case 'c':
-					startVideoCapture()
+					startVideo(false, true)
 				case 'x':
-					startVideoWindowAndCapture()
+					startVideo(true, true)
 				case '0':
 					drone.StartSmartVideo(tello.Sv360)
 				case '1':
@@ -534,12 +539,7 @@ func updateFields(newFd tello.FlightData) {
 	}
 }
 
-func startVideoWindow() {
-	videochan, err := drone.VideoConnectDefault()
-	if err != nil {
-		log.Fatalf("Tello VideoConnectDefault() failed with error %v", err)
-	}
-
+func startPlayer() (io.WriteCloser, error) {
 	// start external mplayer instance...
 	// the -vo X11 parm allows it to run nicely inside a virtual machine
 	// setting the FPS to 60 seems to produce smoother video
@@ -552,106 +552,51 @@ func startVideoWindow() {
 
 	playerIn, err := player.StdinPipe()
 	if err != nil {
-		log.Fatalf("Unable to get STDIN for mplayer %v", err)
+		return playerIn, err
 	}
-	if err := player.Start(); err != nil {
-		log.Fatalf("Unable to start mplayer - %v", err)
-		return
-	}
-
-	// start video feed when drone connects
-	drone.GetVideoSpsPps()
-	go func() {
-		for {
-			drone.GetVideoSpsPps()
-			time.Sleep(500 * time.Millisecond)
-		}
-	}()
-
-	go func() {
-		for {
-			vbuf := <-videochan
-			_, err := playerIn.Write(vbuf)
-			if err != nil {
-				log.Fatalf("Error writing to mplayer %v\n", err)
-			}
-		}
-	}()
+	err := player.Start()
+	return playerIn, err
 }
 
-func startVideoCapture() {
-	videochan, err := drone.VideoConnectDefault()
-	if err != nil {
-		log.Fatalf("Tello VideoConnectDefault() failed with error %v", err)
-	}
-
+func startConverter() (io.WriteCloser, error) {
 	// start ffmpeg converter and save output to current directory
-	converter := exec.Command("ffmpeg", "-i", "-", "-r", "60", "./"+fmt.Sprintf("tello_vid_%s", time.Now().Format(time.RFC3339))+".mp4")
-
-	converterIn, err := converter.StdinPipe()
-	if err != nil {
-		log.Fatalf("Unable to get STDIN for ffmpeg %v", err)
-	}
-	if err := converter.Start(); err != nil {
-		log.Fatalf("Unable to start ffmpeg - %v", err)
-		return
-	}
-
-	// start video feed when drone connects
-	drone.GetVideoSpsPps()
-	go func() {
-		for {
-			drone.GetVideoSpsPps()
-			time.Sleep(500 * time.Millisecond)
-		}
-	}()
-
-	go func() {
-		for {
-			vbuf := <-videochan
-			_, err = converterIn.Write(vbuf)
-			if err != nil {
-				log.Fatalf("Error writing to ffmpeg %v\n", err)
-			}
-		}
-	}()
-}
-
-func startVideoWindowAndCapture() {
-	videochan, err := drone.VideoConnectDefault()
-	if err != nil {
-		log.Fatalf("Tello VideoConnectDefault() failed with error %v", err)
-	}
-
-	// start external mplayer instance...
-	// the -vo X11 parm allows it to run nicely inside a virtual machine
-	// setting the FPS to 60 seems to produce smoother video
-	var player *exec.Cmd
-	if *x11Flag {
-		player = exec.Command("mplayer", "-nosound", "-vo", "x11", "-fps", "60", "-")
+	var converter *exec.Cmd
+	videoFilename := fmt.Sprintf("./tello_vid_%s.mp4", time.Now().Format(time.RFC3339))
+	if *soundDevice != "" {
+		converter = exec.Command("ffmpeg", "-f", "alsa", "-i", *soundDevice, "-i", "-", "-r", "60", videoFilename)
 	} else {
-		player = exec.Command("mplayer", "-nosound", "-fps", "60", "-")
+		converter = exec.Command("ffmpeg", "-i", "-", "-r", "60", videoFilename)
 	}
-
-	playerIn, err := player.StdinPipe()
-	if err != nil {
-		log.Fatalf("Unable to get STDIN for mplayer %v", err)
-	}
-	if err := player.Start(); err != nil {
-		log.Fatalf("Unable to start mplayer - %v", err)
-		return
-	}
-
-	// start ffmpeg converter and save output to current directory
-	converter := exec.Command("ffmpeg", "-i", "-", "-r", "60", "./"+fmt.Sprintf("tello_vid_%s", time.Now().Format(time.RFC3339))+".mp4")
 
 	converterIn, err := converter.StdinPipe()
 	if err != nil {
-		log.Fatalf("Unable to get STDIN for ffmpeg %v", err)
+		return converterIn, err
 	}
-	if err := converter.Start(); err != nil {
-		log.Fatalf("Unable to start ffmpeg - %v", err)
-		return
+	err := converter.Start()
+	return converterIn, err
+}
+
+func startVideo(play bool, capture bool) {
+	videochan, err := drone.VideoConnectDefault()
+	if err != nil {
+		log.Fatalf("Tello VideoConnectDefault() failed with error %v", err)
+	}
+
+	var playerIn io.WriteCloser
+	var converterIn io.WriteCloser
+	if play {
+		playerIn, err := startPlayer()
+		if err != nil {
+			log.Fatalf("Unable to start mplayer - %v", err)
+			return
+		}
+	}
+	if capture {
+		converterIn, err = startConverter()
+		if err != nil {
+			log.Fatalf("Error writing to ffmpeg %v\n", err)
+			return
+		}
 	}
 
 	// start video feed when drone connects
@@ -667,14 +612,18 @@ func startVideoWindowAndCapture() {
 		for {
 			vbuf := <-videochan
 
-			_, err := playerIn.Write(vbuf)
-			if err != nil {
-				log.Fatalf("Error writing to mplayer %v\n", err)
+			if player {
+				_, err := playerIn.Write(vbuf)
+				if err != nil {
+					log.Fatalf("Error writing to mplayer %v\n", err)
+				}
 			}
 
-			_, err = converterIn.Write(vbuf)
-			if err != nil {
-				log.Fatalf("Error writing to ffmpeg %v\n", err)
+			if capture {
+				_, err = converterIn.Write(vbuf)
+				if err != nil {
+					log.Fatalf("Error writing to ffmpeg %v\n", err)
+				}
 			}
 		}
 	}()
