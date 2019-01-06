@@ -579,7 +579,7 @@ func startConverter() (io.WriteCloser, error) {
 	// start ffmpeg converter and save output to current directory
 	videoFilename := fmt.Sprintf("./tello_vid_%s.mp4", time.Now().Format(time.RFC3339))
 	if *soundDevice != "" {
-		converter = exec.Command("ffmpeg", "-f", "pulse", "-i", *soundDevice, "-i", "-", "-r", "60", videoFilename)
+		converter = exec.Command("ffmpeg", "-ss", "00:00:05", "-f", "pulse", "-i", *soundDevice, "-i", "-", "-r", "60", videoFilename)
 	} else {
 		converter = exec.Command("ffmpeg", "-i", "-", "-r", "60", videoFilename)
 	}
