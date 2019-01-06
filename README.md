@@ -9,6 +9,7 @@ Telloterm currently provides
 * control from the keyboard
 * picture taking
 * optional live video feed via mplayer (must be installed separately)
+* optional live video recorfing to file via ffmpeg (must be installed separately)
 * optional control via a Dualshock 4 game controller, Thrustmaster HotasX flight controller, EightBitDoSF30Pro Controller or Steam Controller
 
 Only tested on GNU/Linux - it wil probably work OK on Macs, but it will take some effort to get it running on Windows.
@@ -18,7 +19,7 @@ Only tested on GNU/Linux - it wil probably work OK on Macs, but it will take som
 
 ## Install
 
-``go get github.com/SMerrony/telloterm``
+``go get github.com/Anty0/telloterm``
 
 If you wish to use the video window you must have mplayer installed and on your PATH.
 
@@ -29,9 +30,10 @@ If you wish to use the video window you must have mplayer installed and on your 
 * Connect your computer to the Tello WiFi
 * Run telloterm from a terminal window at least 80x24 characters big 
 
-Hit 'v' to start a video feed, an mplayer window should appear in a couple of seconds.
+Hit 'v' to start a video feed or hit 'x' to start video feed with video recording to file, an mplayer window should appear in a couple of seconds.
 
-If the screen gets messed up, hit `r` or `<Ctrl-L>` to redraw it.
+If the screen gets messed up, hit `r` or `<Ctrl-L>` to redraw it or use `-logfile filename` to redirect output to different
+file and use `tail -f filename` in another terminal to monitor log file changes.
 
 To get help type `telloterm -h`
 
