@@ -96,7 +96,7 @@ var dualShock4Config = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: false,
-		homeEnabled: false,
+		homeEnabled:  false,
 	},
 }
 
@@ -111,7 +111,7 @@ var eightBitDoSF30Pro = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: true,
-		homeEnabled: false,
+		homeEnabled:  false,
 	},
 }
 
@@ -125,7 +125,7 @@ var dualShock4ConfigWin = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: false,
-		homeEnabled: false,
+		homeEnabled:  false,
 	},
 }
 
@@ -140,7 +140,7 @@ var tflightHotasXConfig = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: false,
-		homeEnabled: false,
+		homeEnabled:  false,
 	},
 }
 
@@ -154,7 +154,7 @@ var tflightSteamControllerConfig = joystickConfig{
 
 		btnDL: 19, btnDR: 20, btnDU: 17, btnDD: 18,
 
-		btnHome: 12, btnSelect: 10, btnStart: 11
+		btnHome: 12, btnSelect: 10, btnStart: 11,
 
 		// DTouch = 0
 		// R3Touch = 1
@@ -163,7 +163,7 @@ var tflightSteamControllerConfig = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: true,
-		homeEnabled: false,
+		homeEnabled:  false,
 	},
 }
 
@@ -426,7 +426,6 @@ func readJoystick(test bool) {
 				}
 			}
 		}
-
 
 		// Set or Fly Home Feature
 		if jsConfig.features[homeEnabled] {
