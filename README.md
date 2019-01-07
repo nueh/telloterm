@@ -1,10 +1,12 @@
 # telloterm
+
 A functioning desktop testbed written in Go for flying the Ryze Tello drone via my tello package.
 
 _Play with this entirely at your own risk - it's not the author's fault if you lose your drone
 or damage it, or anything else, when using this software._
 
 Telloterm currently provides
+
 * detailed Tello status display
 * control from the keyboard
 * picture taking
@@ -16,7 +18,6 @@ Only tested on GNU/Linux - it wil probably work OK on Macs, but it will take som
 
 ![Screenshot](ScreenShot.png "TelloTerm in-flight")
 
-
 ## Install
 
 ``go get github.com/Anty0/telloterm``
@@ -24,11 +25,12 @@ Only tested on GNU/Linux - it wil probably work OK on Macs, but it will take som
 If you wish to use the video window you must have mplayer installed and on your PATH.
 
 ## Usage
+
 * Centre the throttle control at the mid-position if using a flight controller
 * Turn on the Tello
 * Wait for it to initialise (flashing orange LED)
 * Connect your computer to the Tello WiFi
-* Run telloterm from a terminal window at least 80x24 characters big 
+* Run telloterm from a terminal window at least 80x24 characters big
 
 Hit 'v' to start a video feed or hit 'x' to start video feed with video recording to file, an mplayer window should appear in a couple of seconds.
 
