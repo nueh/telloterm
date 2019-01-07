@@ -163,7 +163,7 @@ var tflightSteamControllerConfig = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: true,
-		homeEnabled:  false,
+		homeEnabled:  true,
 	},
 }
 
@@ -433,7 +433,10 @@ func readJoystick(test bool) {
 				if test {
 					fmt.Println("Select pressed")
 				} else {
-					drone.SetHome()
+					err = drone.SetHome()
+					if err != nil {
+						log.Printf("Error setting home: %v\n", err)
+					}
 				}
 			}
 			if jsState.Buttons&(1<<jsConfig.buttons[btnHome]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnHome]) == 0 {
@@ -441,7 +444,10 @@ func readJoystick(test bool) {
 					fmt.Println("Home pressed")
 				} else {
 					if drone.IsHomeSet() {
-						drone.AutoFlyToXY(0, 0)
+						_, err = drone.AutoFlyToXY(0, 0)
+						if err != nil {
+							log.Printf("Error flying home: %v\n", err)
+						}
 					} else {
 						log.Println("Failed to fly home: Home location is not set")
 					}
