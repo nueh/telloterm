@@ -66,12 +66,16 @@ const (
 	btnDR
 	btnDU
 	btnDD
+	btnHome
+	btnSelect
+	btnStart
 	btnUnknown
 )
 
 // Features
 const (
 	flipsEnabled = iota
+	homeEnabled
 )
 
 const deadZone = 2000
@@ -92,6 +96,7 @@ var dualShock4Config = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: false,
+		homeEnabled: false,
 	},
 }
 
@@ -106,6 +111,7 @@ var eightBitDoSF30Pro = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: true,
+		homeEnabled: false,
 	},
 }
 
@@ -119,6 +125,7 @@ var dualShock4ConfigWin = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: false,
+		homeEnabled: false,
 	},
 }
 
@@ -133,6 +140,7 @@ var tflightHotasXConfig = joystickConfig{
 	},
 	features: []bool{
 		flipsEnabled: false,
+		homeEnabled: false,
 	},
 }
 
@@ -146,16 +154,16 @@ var tflightSteamControllerConfig = joystickConfig{
 
 		btnDL: 19, btnDR: 20, btnDU: 17, btnDD: 18,
 
+		btnHome: 12, btnSelect: 10, btnStart: 11
+
 		// DTouch = 0
 		// R3Touch = 1
-		// SELECT = 10
-		// START = 11
-		// HOME = 12
 		// BackL = 15
 		// BackR = 16
 	},
 	features: []bool{
 		flipsEnabled: true,
+		homeEnabled: false,
 	},
 }
 
@@ -174,6 +182,10 @@ L1           Slow flight mode
 L2           Bounce (on/off)
 R1           Fast flight mode
 R2           Ultra slow (hold this button for lower sensitivity, does not change flight speed mode)
+
+Select       Set Home position
+Home         Fly to Home position (if set)
+Start        Cancel Fly to Home
 
 D-Pad Left    Flip left
 D-Pad Right   Flip right
@@ -304,6 +316,10 @@ func readJoystick(test bool) {
 				fmt.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
 			}
 		} else {
+			if !hover && hovering {
+				// Make sure autopilot is turned off
+				drone.CancelAutoFlyToXY()
+			}
 			if !hover || !hovering {
 				stickChan <- sm
 			}
@@ -407,6 +423,36 @@ func readJoystick(test bool) {
 					fmt.Println("D-Pad Down pressed")
 				} else {
 					drone.BackFlip()
+				}
+			}
+		}
+
+
+		// Set or Fly Home Feature
+		if jsConfig.features[homeEnabled] {
+			if jsState.Buttons&(1<<jsConfig.buttons[btnSelect]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnSelect]) == 0 {
+				if test {
+					fmt.Println("Select pressed")
+				} else {
+					drone.SetHome()
+				}
+			}
+			if jsState.Buttons&(1<<jsConfig.buttons[btnHome]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnHome]) == 0 {
+				if test {
+					fmt.Println("Home pressed")
+				} else {
+					if drone.IsHomeSet() {
+						drone.AutoFlyToXY(0, 0)
+					} else {
+						log.Println("Failed to fly home: Home location is not set")
+					}
+				}
+			}
+			if jsState.Buttons&(1<<jsConfig.buttons[btnStart]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnStart]) == 0 {
+				if test {
+					fmt.Println("Start pressed")
+				} else {
+					drone.CancelAutoFlyToXY()
 				}
 			}
 		}
