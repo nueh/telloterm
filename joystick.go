@@ -236,6 +236,7 @@ func readJoystick(test bool) {
 	var (
 		sm                 tello.StickMessage
 		jsState, prevState joystick.State
+		hovering           bool
 		err                error
 	)
 
@@ -296,12 +297,20 @@ func readJoystick(test bool) {
 			fmt.Println("R2 released")
 		}
 
+		hover := sm.Lx == 0 && sm.Ly == 0 && sm.Rx == 0 && sm.Ry == 0
+
 		if test {
-			if sm.Lx != 0 || sm.Ly != 0 || sm.Rx != 0 || sm.Ry != 0 {
+			if !hover {
 				fmt.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
 			}
 		} else {
-			stickChan <- sm
+			if !hover || !hovering {
+				stickChan <- sm
+			}
+			if hover && !hovering {
+				drone.Hover()
+			}
+			hovering = hover
 		}
 
 		if jsState.Buttons&(1<<jsConfig.buttons[btnL1]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL1]) == 0 {
