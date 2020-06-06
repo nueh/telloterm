@@ -28,7 +28,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/SMerrony/tello"
+	"github.com/Anty0/tello"
 	"github.com/simulatedsimian/joystick"
 )
 
@@ -66,12 +66,16 @@ const (
 	btnDR
 	btnDU
 	btnDD
+	btnHome
+	btnSelect
+	btnStart
 	btnUnknown
 )
 
 // Features
 const (
-	flips_enabled = iota
+	flipsEnabled = iota
+	homeEnabled
 )
 
 const deadZone = 2000
@@ -91,7 +95,8 @@ var dualShock4Config = joystickConfig{
 		btnL2: 6, btnR1: 5, btnR2: 7,
 	},
 	features: []bool{
-		flips_enabled: false,
+		flipsEnabled: false,
+		homeEnabled:  false,
 	},
 }
 
@@ -105,7 +110,8 @@ var eightBitDoSF30Pro = joystickConfig{
 		btnL2: 6, btnR1: 5, btnR2: 7, btnDL: 13, btnDR: 14, btnDU: 15, btnDD: 16,
 	},
 	features: []bool{
-		flips_enabled: true,
+		flipsEnabled: true,
+		homeEnabled:  false,
 	},
 }
 
@@ -118,7 +124,8 @@ var dualShock4ConfigWin = joystickConfig{
 		btnL2: 6, btnR1: 5, btnR2: 7,
 	},
 	features: []bool{
-		flips_enabled: false,
+		flipsEnabled: false,
+		homeEnabled:  false,
 	},
 }
 
@@ -132,7 +139,31 @@ var tflightHotasXConfig = joystickConfig{
 		btnCircle: 6, btnTriangle: 7, btnR2: 8, btnL2: 9,
 	},
 	features: []bool{
-		flips_enabled: false,
+		flipsEnabled: false,
+		homeEnabled:  false,
+	},
+}
+
+var tflightSteamControllerConfig = joystickConfig{
+	axes: []int{
+		axLeftX: 0, axLeftY: 1, axRightX: 2, axRightY: 3,
+	},
+	buttons: []uint{
+		btnR1: 7, btnL1: 6, btnR3: 14, btnL3: 13, btnSquare: 4, btnX: 2,
+		btnCircle: 3, btnTriangle: 5, btnR2: 9, btnL2: 8,
+
+		btnDL: 19, btnDR: 20, btnDU: 17, btnDD: 18,
+
+		btnHome: 12, btnSelect: 10, btnStart: 11,
+
+		// DTouch = 0
+		// R3Touch = 1
+		// BackL = 15
+		// BackR = 16
+	},
+	features: []bool{
+		flipsEnabled: true,
+		homeEnabled:  true,
 	},
 }
 
@@ -140,14 +171,26 @@ func printJoystickHelp() {
 	fmt.Print(
 		`TelloTerm Joystick Control Mapping
 
-Right Stick  Forward/Backward/Left/Right
-Left Stick   Up/Down/Turn
-Triangle     Takeoff
-X            Land
-Circle       Throw Takeoff
-Square       Take Photo
-L1           Bounce (on/off)
-L2           Palm Land
+Left Stick   Forward/Backward/Left/Right
+Right Stick  Up/Down/Turn
+
+△            Takeoff
+╳            Land
+○            Take Photo
+⌑            Throw takeoff / Palm Land
+L1           Slow flight mode
+L2           Bounce (on/off)
+R1           Fast flight mode
+R2           Ultra slow (hold this button for lower sensitivity, does not change flight speed mode)
+
+Select       Set Home position
+Home         Fly to Home position (if set)
+Start        Cancel Fly to Home
+
+D-Pad Left    Flip left
+D-Pad Right   Flip right
+D-Pad Up      Flip forward
+D-Pad Down    Flip backward
 `)
 }
 
@@ -185,6 +228,8 @@ func setupJoystick(id int) bool {
 		jsConfig = tflightHotasXConfig
 	case "EightBitDoSF30Pro":
 		jsConfig = eightBitDoSF30Pro
+	case "SteamController":
+		jsConfig = tflightSteamControllerConfig
 	default:
 		log.Fatalf("Unknown joystick type <%s> supplied\n", *jsTypeFlag)
 	}
@@ -203,6 +248,7 @@ func readJoystick(test bool) {
 	var (
 		sm                 tello.StickMessage
 		jsState, prevState joystick.State
+		hovering           bool
 		err                error
 	)
 
@@ -214,27 +260,27 @@ func readJoystick(test bool) {
 		}
 
 		if jsState.AxisData[jsConfig.axes[axLeftX]] == 32768 {
-			sm.Lx = 32767
+			sm.Rx = 32767
 		} else {
-			sm.Lx = int16(jsState.AxisData[jsConfig.axes[axLeftX]])
+			sm.Rx = int16(jsState.AxisData[jsConfig.axes[axLeftX]])
 		}
 
 		if jsState.AxisData[jsConfig.axes[axLeftY]] == 32768 {
-			sm.Ly = -32767
+			sm.Ry = -32767
 		} else {
-			sm.Ly = -int16(jsState.AxisData[jsConfig.axes[axLeftY]])
+			sm.Ry = -int16(jsState.AxisData[jsConfig.axes[axLeftY]])
 		}
 
 		if jsState.AxisData[jsConfig.axes[axRightX]] == 32768 {
-			sm.Rx = 32767
+			sm.Lx = 32767
 		} else {
-			sm.Rx = int16(jsState.AxisData[jsConfig.axes[axRightX]])
+			sm.Lx = int16(jsState.AxisData[jsConfig.axes[axRightX]])
 		}
 
 		if jsState.AxisData[jsConfig.axes[axRightY]] == 32768 {
-			sm.Ry = -32767
+			sm.Ly = -32767
 		} else {
-			sm.Ry = -int16(jsState.AxisData[jsConfig.axes[axRightY]])
+			sm.Ly = -int16(jsState.AxisData[jsConfig.axes[axRightY]])
 		}
 
 		if intAbs(sm.Lx) < deadZone {
@@ -250,92 +296,179 @@ func readJoystick(test bool) {
 			sm.Ry = 0
 		}
 
-		if test {
-			log.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
-		} else {
-			stickChan <- sm
+		if jsState.Buttons&(1<<jsConfig.buttons[btnR2]) != 0 {
+			if test && prevState.Buttons&(1<<jsConfig.buttons[btnR2]) == 0 {
+				fmt.Println("R2 pressed")
+			}
 
+			sm.Lx /= 3
+			sm.Ly /= 3
+			sm.Rx /= 3
+			sm.Ry /= 3
+		} else if test && prevState.Buttons&(1<<jsConfig.buttons[btnR2]) != 0 {
+			fmt.Println("R2 released")
+		}
+
+		hover := sm.Lx == 0 && sm.Ly == 0 && sm.Rx == 0 && sm.Ry == 0
+
+		if test {
+			if !hover {
+				fmt.Printf("JS: Lx: %d, Ly: %d, Rx: %d, Ry: %d\n", sm.Lx, sm.Ly, sm.Rx, sm.Ry)
+			}
+		} else {
+			if !hover && hovering {
+				// Make sure autopilot is turned off
+				drone.CancelAutoFlyToXY()
+			}
+			if !hover || !hovering {
+				stickChan <- sm
+			}
+			if hover && !hovering {
+				drone.Hover()
+			}
+			hovering = hover
 		}
 
 		if jsState.Buttons&(1<<jsConfig.buttons[btnL1]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL1]) == 0 {
 			if test {
-				log.Println("L1 pressed")
+				fmt.Println("L1 pressed")
 			} else {
-				drone.Bounce()
+				drone.SetSlowMode()
 			}
-
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnL2]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL2]) == 0 {
 			if test {
-				log.Println("L2 pressed")
+				fmt.Println("L2 pressed")
 			} else {
-				drone.PalmLand()
+				drone.Bounce()
 			}
-
 		}
+		if jsState.Buttons&(1<<jsConfig.buttons[btnR1]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnR1]) == 0 {
+			if test {
+				fmt.Println("R1 pressed")
+			} else {
+				drone.SetFastMode()
+			}
+		}
+
+		if jsState.Buttons&(1<<jsConfig.buttons[btnL3]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnL3]) == 0 {
+			if test {
+				fmt.Println("L3 pressed")
+			}
+		}
+		if jsState.Buttons&(1<<jsConfig.buttons[btnR3]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnR3]) == 0 {
+			if test {
+				fmt.Println("R3 pressed")
+			}
+		}
+
 		if jsState.Buttons&(1<<jsConfig.buttons[btnSquare]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnSquare]) == 0 {
 			if test {
-				log.Println("Square pressed")
+				fmt.Println("⌑ pressed")
 			} else {
-				drone.TakePicture()
+				if drone.GetFlightData().Flying {
+					drone.PalmLand()
+				} else {
+					drone.ThrowTakeOff()
+				}
 			}
-
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnTriangle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnTriangle]) == 0 {
 			if test {
-				log.Println("Triangle pressed")
+				fmt.Println("△ pressed")
 			} else {
 				drone.TakeOff()
 			}
-
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnCircle]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnCircle]) == 0 {
 			if test {
-				log.Println("Circle pressed")
+				fmt.Println("○ pressed")
 			} else {
-				drone.ThrowTakeOff()
+				drone.TakePicture()
 			}
 		}
 		if jsState.Buttons&(1<<jsConfig.buttons[btnX]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnX]) == 0 {
 			if test {
-				log.Println("X pressed")
+				fmt.Println("╳ pressed")
 			} else {
 				drone.Land()
 			}
 		}
+
 		// Flip Feature
-		if jsConfig.features[flips_enabled] {
+		if jsConfig.features[flipsEnabled] {
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDL]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDL]) == 0 {
 				if test {
-					log.Println("D-Pad Left pressed")
+					fmt.Println("D-Pad Left pressed")
 				} else {
 					drone.LeftFlip()
 				}
 			}
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDR]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDR]) == 0 {
 				if test {
-					log.Println("D-Pad Right pressed")
+					fmt.Println("D-Pad Right pressed")
 				} else {
 					drone.RightFlip()
 				}
 			}
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDU]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDU]) == 0 {
 				if test {
-					log.Println("D-Pad Up pressed")
+					fmt.Println("D-Pad Up pressed")
 				} else {
 					drone.ForwardFlip()
 				}
 			}
 			if jsState.Buttons&(1<<jsConfig.buttons[btnDD]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnDD]) == 0 {
 				if test {
-					log.Println("D-Pad Down pressed")
+					fmt.Println("D-Pad Down pressed")
 				} else {
 					drone.BackFlip()
 				}
 			}
 		}
+
+		// Set or Fly Home Feature
+		if jsConfig.features[homeEnabled] {
+			if jsState.Buttons&(1<<jsConfig.buttons[btnSelect]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnSelect]) == 0 {
+				if test {
+					fmt.Println("Select pressed")
+				} else {
+					err = drone.SetHome()
+					if err != nil {
+						log.Printf("Error setting home: %v\n", err)
+					}
+				}
+			}
+			if jsState.Buttons&(1<<jsConfig.buttons[btnHome]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnHome]) == 0 {
+				if test {
+					fmt.Println("Home pressed")
+				} else {
+					if drone.IsHomeSet() {
+						_, err = drone.AutoFlyToXY(0, 0)
+						if err != nil {
+							log.Printf("Error flying home: %v\n", err)
+						}
+					} else {
+						log.Println("Failed to fly home: Home location is not set")
+					}
+				}
+			}
+			if jsState.Buttons&(1<<jsConfig.buttons[btnStart]) != 0 && prevState.Buttons&(1<<jsConfig.buttons[btnStart]) == 0 {
+				if test {
+					fmt.Println("Start pressed")
+				} else {
+					drone.CancelAutoFlyToXY()
+				}
+			}
+		}
+
 		prevState = jsState
 
-		time.Sleep(updatePeriodMs)
+		if test {
+			// Avoid spam of stdout output
+			time.Sleep(150 * time.Millisecond)
+		} else {
+			time.Sleep(updatePeriodMs)
+		}
 	}
 }
